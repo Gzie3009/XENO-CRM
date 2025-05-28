@@ -3,14 +3,10 @@ const User = require("../models/user");
 
 exports.protect = async (req, res, next) => {
   let token;
-
+  console.log(req.cookies);
   // 1. Check cookies first
   if (req.cookies.token) {
     token = req.cookies.token;
-  }
-  // 2. Fallback to Authorization header
-  else if (req.headers.authorization?.startsWith("Bearer")) {
-    token = req.headers.authorization.split(" ")[1];
   }
 
   if (!token) {
@@ -24,7 +20,6 @@ exports.protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({
       _id: decoded._id,
-      "tokens.token": token,
     });
 
     if (!user) throw new Error("User not found");

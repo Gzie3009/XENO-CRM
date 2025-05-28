@@ -1,3 +1,4 @@
+import { useGoogleLogin } from "@react-oauth/google";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,8 +10,10 @@ import {
   MessageSquare,
   Database,
 } from "lucide-react";
+import api from "@/utils/API";
+import { useNavigate } from "react-router-dom";
 
-function Header() {
+function Header({ googleLoginClick }) {
   return (
     <header
       className={
@@ -26,17 +29,19 @@ function Header() {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm">
+          <Button onClick={googleLoginClick} variant="outline" size="sm">
             Sign In
           </Button>
-          <Button size="sm">Get Started</Button>
+          <Button onClick={googleLoginClick} size="sm">
+            Get Started
+          </Button>
         </div>
       </div>
     </header>
   );
 }
 
-function HeroSection() {
+function HeroSection({ googleLoginClick }) {
   return (
     <section className="min-h-screen pt-20 relative overflow-hidden">
       <div className="absolute inset-0 bg-grid-small-black/[0.2] dark:bg-grid-small-white/[0.2] -z-10" />
@@ -64,10 +69,15 @@ function HeroSection() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Button size="lg" className="text-base">
+            <Button onClick={googleLoginClick} size="lg" className="text-base">
               Start Free Trial
             </Button>
-            <Button size="lg" variant="outline" className="text-base">
+            <Button
+              onClick={googleLoginClick}
+              size="lg"
+              variant="outline"
+              className="text-base"
+            >
               Book a Demo
             </Button>
           </div>
@@ -102,11 +112,31 @@ function HeroSection() {
 }
 
 const Home = () => {
+  const naviagte = useNavigate();
+  const googleLoginClick = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        const res = await api.post("/auth/google", {
+          code: tokenResponse.code,
+        });
+
+        if (res.status === 200) {
+          naviagte("/dashboard");
+        }
+      } catch (error) {
+        console.error("Login failed:", error);
+      }
+    },
+    onError: () => {
+      console.error("Login Failed");
+    },
+    flow: "auth-code",
+  });
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      <Header googleLoginClick={googleLoginClick} />
       <main className="flex-1">
-        <HeroSection />
+        <HeroSection googleLoginClick={googleLoginClick} />
       </main>
     </div>
   );

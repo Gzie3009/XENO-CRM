@@ -7,21 +7,21 @@ const jwt = require("jsonwebtoken");
 // @access  Public
 exports.googleAuth = async (req, res) => {
   try {
-    const { idToken } = req.body;
-    if (!idToken) {
+    const { code } = req.body;
+    if (!code) {
       return res
         .status(400)
         .json({ success: false, error: "ID token required" });
     }
 
-    const { user, token } = await googleLogin(idToken);
+    const { user, token } = await googleLogin(code);
 
     // Set HTTP-only cookie with expiration
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite: "Strict",
+      maxAge: (30 * 24 * 60 * 60 * 1000), // 30 days
     });
 
     res.status(200).json({

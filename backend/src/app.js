@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const connectDB = require("../config/db");
+const cookieParser = require("cookie-parser");
 
 const customerRoutes = require("../routes/customerRoutes");
 const orderRoutes = require("../routes/orderRoutes");
@@ -10,12 +11,24 @@ const authRoutes = require("../routes/authRoutes");
 const cors = require("cors");
 
 const app = express();
+// In your backend (Node.js/Express)
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
+  next();
+});
 
 // Connect to MongoDB
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+  })
+);
+app.use(cookieParser());
 app.use(express.json());
 
 // Health check route

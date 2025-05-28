@@ -2,15 +2,23 @@ const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  "postmessage" // Special redirect for auth code flow
+);
 
-exports.googleLogin = async (idToken) => {
+exports.googleLogin = async (code) => {
+  const { tokens } = await client.getToken(code);
+
   const ticket = await client.verifyIdToken({
-    idToken,
+    idToken: tokens.id_token,
     audience: process.env.GOOGLE_CLIENT_ID,
   });
 
   const { email, name, picture, sub: googleId } = ticket.getPayload();
+
+  console.log(ticket.getPayload());
 
   let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
@@ -27,7 +35,7 @@ exports.googleLogin = async (idToken) => {
   }
 
   const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+    expiresIn: 30 * 24 * 60 * 60 * 1000,
   });
 
   return { user, token };
