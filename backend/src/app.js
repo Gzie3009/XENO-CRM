@@ -7,6 +7,8 @@ const cookieParser = require("cookie-parser");
 const customerRoutes = require("../routes/customerRoutes");
 const orderRoutes = require("../routes/orderRoutes");
 const authRoutes = require("../routes/authRoutes");
+const segmentRoutes = require("../routes/segmentRoutes");
+const aiRoutes = require("../routes/aiRoutes");
 
 const cors = require("cors");
 
@@ -36,33 +38,12 @@ app.get("/", (req, res) => {
   res.status(200).json({ status: "Server is running" });
 });
 
-// API documentation route
-app.get("/api-docs", (req, res) => {
-  res.json({
-    message: "API Documentation",
-    endpoints: {
-      customers: {
-        create: "POST /api/customers",
-        getAll: "GET /api/customers",
-        getOne: "GET /api/customers/:id",
-        update: "PUT /api/customers/:id",
-        delete: "DELETE /api/customers/:id",
-      },
-      orders: {
-        create: "POST /api/orders",
-        getAll: "GET /api/orders",
-        getOne: "GET /api/orders/:id",
-        update: "PUT /api/orders/:id",
-        delete: "DELETE /api/orders/:id",
-      },
-    },
-  });
-});
-
 // Routes
 app.use("/api/customers", customerRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/segment", segmentRoutes);
+app.use("/api/ai", aiRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

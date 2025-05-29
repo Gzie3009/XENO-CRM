@@ -4,13 +4,10 @@ const customerController = require("../controllers/customerController");
 const authMiddleware = require("../middlewares/auth");
 
 // Apply authentication middleware to all customer routes
-router.use(authMiddleware.protect); 
+router.use(authMiddleware.protect);
 
 // Customer routes
 router.post("/", customerController.createCustomer);
-router.get("/", customerController.getAllCustomers);
-router.get("/:id", customerController.getCustomerById);
-router.put("/:id", customerController.updateCustomer);
-router.delete("/:id", customerController.deleteCustomer);
+router.get("/total", customerController.getTotalCustomers);
 
 module.exports = router;

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import api from "@/utils/API";
 import { useNavigate } from "react-router-dom";
+import useStore from "@/store/useStore";
 
 function Header({ googleLoginClick }) {
   return (
@@ -132,6 +133,12 @@ const Home = () => {
     },
     flow: "auth-code",
   });
+  const { user } = useStore();
+  useEffect(() => {
+    if (Object.keys(user).length != 0) {
+      naviagte("/dashboard");
+    }
+  }, [user, naviagte]);
   return (
     <div className="min-h-screen flex flex-col">
       <Header googleLoginClick={googleLoginClick} />

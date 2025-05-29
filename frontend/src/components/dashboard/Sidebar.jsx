@@ -16,8 +16,6 @@ import { toast } from "sonner";
 export const SidebarContent = () => {
   const navItems = [
     { name: "Dashboard", path: "/dashboard", icon: <Home size={20} /> },
-    { name: "Customers", path: "/customers", icon: <Users size={20} /> },
-    { name: "Orders", path: "/orders", icon: <ShoppingCart size={20} /> },
     { name: "Segments", path: "/segments", icon: <PieChart size={20} /> },
     { name: "Campaigns", path: "/campaigns", icon: <Megaphone size={20} /> },
   ];
@@ -29,7 +27,8 @@ export const SidebarContent = () => {
       if (response.status === 200) {
         toast.success("Logout successful");
         navigate("/");
-      } else {
+      }
+      else{
         toast.error("Logout failed");
       }
     } catch (error) {

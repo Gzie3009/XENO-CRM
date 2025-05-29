@@ -9,14 +9,12 @@ import { Toaster } from "@/components/ui/sonner";
 
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
-import CustomersPage from "./pages/Customers";
-import OrdersPage from "./pages/Orders";
-import SegmentsPage from "./pages/Segments";
 import CreateSegmentPage from "./pages/CreateSegment";
 import CampaignsPage from "./pages/Campaigns";
 import CampaignDetailPage from "./pages/CampaignDetailPage";
 import { SidebarContent } from "./components/dashboard/Sidebar"; // Import SidebarContent
 import AuthProvider from "./providers/authProvider";
+import SegmentsPage from "./pages/Segments";
 
 function AppContent() {
   const location = useLocation();
@@ -58,8 +56,6 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
           <Route path="/segments" element={<SegmentsPage />} />
           <Route path="/segments/new" element={<CreateSegmentPage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />

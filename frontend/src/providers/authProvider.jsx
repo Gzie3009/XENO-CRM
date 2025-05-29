@@ -10,7 +10,7 @@ const AuthProvider = ({ children }) => {
       const response = await api.get("/auth/me");
       if (response.status === 200) {
         setUser(response.data.data);
-      } else {
+      } else if (response.status === 401) {
         navigate("/");
       }
     } catch (error) {
