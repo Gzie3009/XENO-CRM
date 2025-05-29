@@ -9,6 +9,5 @@ router.post("/google", authController.googleAuth);
 // Protected routes (require authentication)
 router.get("/me", authMiddleware.protect, authController.getMe);
 router.post("/logout", authMiddleware.protect, authController.logout);
-router.post("/logout-all", authMiddleware.protect, authController.logoutAll);
 
 module.exports = router;

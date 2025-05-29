@@ -21,7 +21,7 @@ exports.googleAuth = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: (30 * 24 * 60 * 60 * 1000), // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000 * 10,
     });
 
     res.status(200).json({
@@ -60,26 +60,8 @@ exports.getMe = async (req, res) => {
 // @access  Private
 exports.logout = async (req, res) => {
   try {
-    req.user.tokens = req.user.tokens.filter((t) => t.token !== req.token);
-    await req.user.save();
-
-    // Clear cookie
     res.clearCookie("token");
     res.status(200).json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Server Error" });
-  }
-};
-
-// @desc    Logout all sessions
-// @route   POST /api/auth/logout-all
-// @access  Private
-exports.logoutAll = async (req, res) => {
-  try {
-    req.user.tokens = [];
-    await req.user.save();
-
-    res.status(200).json({ success: true, data: {} });
   } catch (error) {
     res.status(500).json({ success: false, error: "Server Error" });
   }
