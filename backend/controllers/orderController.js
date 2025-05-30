@@ -1,78 +1,75 @@
-const Order = require("../models/order");
-const Customer = require("../models/customer");
+const { sendMessage } = require("../config/kafkaProducer");
 
-// Create a new order
+const KAFKA_TOPIC_ORDER = "order-ingestion";
+
 exports.createOrder = async (req, res) => {
   try {
-    // Check if customer exists
-    const customer = await Customer.findById(req.body.customerId);
-    if (!customer) {
-      return res.status(404).json({ error: "Customer not found" });
+    if (!req.body.customerId) {
+      return res
+        .status(400)
+        .json({ error: "userId is required for the order." });
+    }
+    if (
+      !req.body.amount ||
+      typeof req.body.amount !== "number" ||
+      req.body.amount <= 0
+    ) {
+      return res.status(400).json({ error: "Valid order amount is required." });
+    }
+    if (
+      !req.body.items ||
+      !Array.isArray(req.body.items) ||
+      req.body.items.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Order must contain at least one item." });
+    }
+    if (
+      req.body.items.some(
+        (item) =>
+          !item.productId ||
+          !item.name ||
+          !item.quantity ||
+          !item.price ||
+          !item.category
+      )
+    ) {
+      return res.status(400).json({
+        error:
+          "All order items must have productId, name, quantity, price, and category.",
+      });
     }
 
-    const order = new Order(req.body);
-    await order.save();
-
-    // Update customer's total spent and order count
-    customer.totalSpent += order.totalAmount;
-    customer.totalOrders += 1;
-    customer.lastActiveAt = new Date();
-    await customer.save();
-
-    res.status(201).json(order);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-// Get all orders
-exports.getAllOrders = async (req, res) => {
-  try {
-    const orders = await Order.find().populate("customerId");
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Get a single order by ID
-exports.getOrderById = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id).populate("customerId");
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
+    if (!req.body.status || typeof req.body.status !== "string") {
+      return res.status(400).json({ error: "Valid status is required." });
     }
-    res.json(order);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Update an order
-exports.updateOrder = async (req, res) => {
-  try {
-    const order = await Order.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    }).populate("customerId");
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
+    if (
+      req.body.status !== "PLACED" &&
+      req.body.status !== "DELIVERED" &&
+      req.body.status !== "CANCELLED"
+    ) {
+      return res.status(400).json({
+        error: "Status must be one of PLACED, DELIVERED, or CANCELLED.",
+      });
     }
-    res.json(order);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
 
-// Delete an order
-exports.deleteOrder = async (req, res) => {
-  try {
-    const order = await Order.findByIdAndDelete(req.params.id);
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
-    }
-    res.json({ message: "Order deleted successfully" });
+    const orderData = {
+      ...req.body,
+      orderDate: req.body.orderDate || new Date().toISOString(),
+    };
+
+    await sendMessage(KAFKA_TOPIC_ORDER, orderData);
+
+    res.status(202).json({
+      message: "Order data accepted for processing.",
+      data: req.body,
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error in createOrder controller:", error);
+    res.status(500).json({
+      error: "Failed to process order data due to an internal server error.",
+      details: error.message,
+    });
   }
 };

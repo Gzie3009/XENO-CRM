@@ -1,0 +1,43 @@
+version: '3.8' # Specifies the Docker Compose file format version.
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0 # Uses a specific version of Confluent's ZooKeeper image.
+    hostname: zookeeper # Sets the hostname within the Docker network.
+    container_name: zookeeper # Assigns a specific name to the container for easy reference.
+    ports:
+      - "2181:2181" # Maps host port 2181 to container port 2181, allowing external access.
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181 # ZooKeeper's client port.
+      ZOOKEEPER_TICK_TIME: 2000 # ZooKeeper's tick time (basic configuration).
+    healthcheck: # Defines a health check to ensure ZooKeeper is running before Kafka starts.
+      test: ["CMD", "nc", "-z", "localhost", "2181"] # Uses netcat to check if the port is open.
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0 # Uses a specific version of Confluent's Kafka image.
+    hostname: kafka # Sets the hostname within the Docker network.
+    container_name: kafka # Assigns a specific name to the container.
+    ports:
+      - "9092:9092" # Maps host port 9092 to container port 9092 for Kafka communication.
+    depends_on: # Ensures Kafka starts only after ZooKeeper is healthy.
+      zookeeper:
+        condition: service_healthy
+    environment: # Kafka specific configurations.
+      KAFKA_BROKER_ID: 1 # A unique ID for this Kafka broker in a cluster.
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181' # Connects Kafka to the ZooKeeper service defined above.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT # Defines security protocols for listeners.
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092 # Critical for external and internal communication.
+                                                                                               # localhost:9092 is for your host machine to connect.
+                                                                                               # kafka:29092 is for inter-broker communication within Docker network.
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL # Specifies the listener for inter-broker communication.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1 # Sets the replication factor for internal Kafka topics to 1 (for single-broker setup).
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0 # Reduces initial rebalance delay for consumer groups.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" # Automatically creates topics when a producer sends messages to a non-existent topic.
+    healthcheck: # Defines a health check for the Kafka broker.
+      test: ["CMD", "nc", "-z", "localhost", "9092"] # Checks if Kafka's port is listening.
+      interval: 10s
+      timeout: 5s
+      retries: 5

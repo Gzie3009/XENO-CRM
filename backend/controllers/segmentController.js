@@ -1,6 +1,10 @@
 const Segment = require("../models/segment");
 const Customer = require("../models/customer");
 const { generateLabel } = require("../utils/generateLabel");
+const {
+  buildMongoQuery,
+  aggregatedQueryPipeline,
+} = require("../utils/CustomQuery");
 
 // Create a new segment
 exports.createSegment = async (req, res) => {
@@ -10,11 +14,10 @@ exports.createSegment = async (req, res) => {
     if (!objective || !description || !rules || !messageTemplate) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    let newsegment = new Segment({
+    let newsegment = await Segment.create({
       objective,
       description,
       rules,
-      messageTemplate,
       userId: req.user._id,
     });
     let label = await generateLabel(
@@ -23,11 +26,10 @@ exports.createSegment = async (req, res) => {
       rules,
       messageTemplate
     );
-    newsegment.label = label;
-    await newsegment.save();
 
     let campaign = { _id: 1 };
     // initiate the campaign
+    // initiateCampaign(segment._id,messageTemplate,label)
 
     // dummy return for now
     res.status(201).json(campaign);

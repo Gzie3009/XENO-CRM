@@ -62,6 +62,14 @@ const MessageEditor = ({
       toast.info("Please enter a message description.");
       return;
     }
+    if (!objective.trim()) {
+      toast.info("Please enter an objective.");
+      return;
+    }
+    if (!segmentDescription.trim()) {
+      toast.info("Please enter a segment description.");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -81,6 +89,7 @@ const MessageEditor = ({
       console.error(err);
     } finally {
       setLoading(false);
+      setShowDialog(false);
     }
   };
 

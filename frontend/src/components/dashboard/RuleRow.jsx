@@ -1,5 +1,6 @@
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectTrigger,
@@ -7,46 +8,121 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Trash } from "lucide-react";
+import { X } from "lucide-react";
+import { fieldOptions } from "@/lib/fieldOptions";
 
-export function RuleRow({ rule, onChange, onDelete }) {
+const getOperators = (type) => {
+  switch (type) {
+    case "number":
+      return ["=", "!=", ">", "<", ">=", "<="];
+    case "string":
+      return ["=", "!=", "contains", "starts_with", "ends_with"];
+    case "date":
+      return ["=", "!=", "before", "after", "on_or_before", "on_or_after"];
+    default:
+      return ["="];
+  }
+};
+
+export default function RuleRow({ rule, index, onUpdate, onDelete }) {
+  const fieldConfig = fieldOptions[rule.field] || {
+    label: "Order Amount",
+    type: "number",
+  };
+
+  const [operatorOptions, setOperatorOptions] = useState([]);
+  const [inputValue, setInputValue] = useState(rule.value);
+
+  // Updates when field is changed
+  const handleFieldChange = (val) => {
+    const newFieldConfig = fieldOptions[val];
+    const newOperators = getOperators(newFieldConfig.type);
+    const newValue = newFieldConfig.type === "number" ? 0 : "";
+
+    onUpdate({
+      field: val,
+      operator: newOperators[0],
+      value: newValue,
+    });
+  };
+
+  const handleOperatorChange = (val) => {
+    onUpdate({
+      ...rule,
+      operator: val,
+    });
+  };
+
+  const handleValueChange = (val) => {
+    let parsedValue = val;
+    if (fieldConfig.type === "number") parsedValue = Number(val);
+    if (fieldConfig.type === "date") parsedValue = val; // Keep as string for now
+    setInputValue(parsedValue);
+    onUpdate({
+      ...rule,
+      value: parsedValue,
+    });
+  };
+
+  useEffect(() => {
+    const fieldType = fieldOptions[rule.field]?.type || "number";
+    const newOperators = getOperators(fieldType);
+    setOperatorOptions(newOperators);
+  }, [rule.field]);
+
+  const inputType =
+    fieldConfig.type === "number"
+      ? "number"
+      : fieldConfig.type === "date"
+      ? "date"
+      : "text";
+
   return (
-    <div className="flex gap-2 items-center my-2">
-      <Select
-        value={rule.field}
-        onValueChange={(val) => onChange({ ...rule, field: val })}
-      >
-        <SelectTrigger className="w-[120px]">
+    <div className="flex items-center gap-2 w-full mt-2">
+      {/* Field Select */}
+      <Select value={rule.field} onValueChange={handleFieldChange}>
+        <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Field" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="spend">Spend</SelectItem>
-          <SelectItem value="visits">Visits</SelectItem>
-          <SelectItem value="last_active_days_ago">Inactive Days</SelectItem>
+          {Object.entries(fieldOptions).map(([key, { label }]) => (
+            <SelectItem key={key} value={key}>
+              {label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
-      <Select
-        value={rule.operator}
-        onValueChange={(val) => onChange({ ...rule, operator: val })}
-      >
-        <SelectTrigger className="w-[80px]">
-          <SelectValue placeholder="Op" />
+      {/* Operator Select */}
+      <Select value={rule.operator || ""} onValueChange={handleOperatorChange}>
+        <SelectTrigger className="w-[150px]">
+          <SelectValue placeholder="Operator" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value=">">&gt;</SelectItem>
-          <SelectItem value="<">&lt;</SelectItem>
-          <SelectItem value="=">=</SelectItem>
+          {operatorOptions.map((op) => (
+            <SelectItem key={op} value={op}>
+              {op}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
+      {/* Value Input */}
       <Input
-        className="w-[100px]"
-        value={rule.value}
-        onChange={(e) => onChange({ ...rule, value: e.target.value })}
+        type={inputType}
+        value={inputValue}
+        onChange={(e) => handleValueChange(e.target.value)}
+        className="w-[220px]"
       />
-      <Button variant="destructive" onClick={onDelete}>
-        <Trash></Trash>
+
+      {/* Delete Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => onDelete(index)}
+        className="text-red-500"
+      >
+        <X />
       </Button>
     </div>
   );

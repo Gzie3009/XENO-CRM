@@ -13,7 +13,10 @@ import { Bus } from "lucide-react";
 import { toast } from "sonner";
 
 const CreateSegmentPage = () => {
-  const [segment, setSegment] = useState({ operator: "AND", rules: [] });
+  const [segment, setSegment] = useState({
+    operator: "AND",
+    rules: [],
+  });
   const [aiPrompt, setAiPrompt] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -39,10 +42,6 @@ const CreateSegmentPage = () => {
     }
     if (!messageTemplate) {
       toast.info("Please provide a message template for the segment.");
-      return;
-    }
-    if (segment.rules.length === 0) {
-      toast.info("Please add at least one rule to the segment.");
       return;
     }
 
@@ -102,7 +101,11 @@ const CreateSegmentPage = () => {
 
       {/* Row 2: Rules + Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <RuleBuilder segment={segment} setSegment={setSegment} />
+        <RuleBuilder
+          setAudienceSize={setAudienceSize}
+          segment={segment}
+          setSegment={setSegment}
+        />
         <AudiencePreview
           audienceSize={audienceSize}
           totalUsers={totalCustomers}

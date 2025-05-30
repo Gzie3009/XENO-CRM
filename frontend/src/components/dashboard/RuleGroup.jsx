@@ -6,12 +6,13 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { RuleRow } from "./RuleRow";
+import RuleRow from "./RuleRow";
 import { Trash } from "lucide-react";
 
 export function RuleGroup({ group, onChange, onDelete }) {
   const updateRule = (index, newRule) => {
     const newRules = [...group.rules];
+    console.log("newRule", newRule);
     newRules[index] = newRule;
     onChange({ ...group, rules: newRules });
   };
@@ -36,10 +37,10 @@ export function RuleGroup({ group, onChange, onDelete }) {
   };
 
   return (
-    <div className="border p-4 rounded-xl mb-4 overflow-x-auto ">
-      <div className="flex items-center mb-4">
+    <div className="border border-black my-2 p-2 rounded-xl mb-4 overflow-x-auto ">
+      <div className="flex items-center">
         <Select
-          value={group.operator}
+          value={group.operator || "AND"}
           onValueChange={(val) => onChange({ ...group, operator: val })}
         >
           <SelectTrigger className="w-[100px] mr-2">
@@ -78,8 +79,9 @@ export function RuleGroup({ group, onChange, onDelete }) {
         ) : (
           <RuleRow
             key={index}
+            index={index}
             rule={rule}
-            onChange={(newRule) => updateRule(index, newRule)}
+            onUpdate={(newRule) => updateRule(index, newRule)}
             onDelete={() => deleteRule(index)}
           />
         )

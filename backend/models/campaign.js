@@ -5,6 +5,7 @@ const campaignSchema = new mongoose.Schema({
   segmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Segment" },
   name: String,
   messageTemplate: String,
+  audienceSize: Number,
   status: {
     type: String,
     enum: ["PENDING", "RUNNING", "COMPLETED"],

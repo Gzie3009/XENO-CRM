@@ -1,6 +1,5 @@
 require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
 const connectDB = require("../config/db");
 const cookieParser = require("cookie-parser");
 
@@ -9,10 +8,16 @@ const orderRoutes = require("../routes/orderRoutes");
 const authRoutes = require("../routes/authRoutes");
 const segmentRoutes = require("../routes/segmentRoutes");
 const aiRoutes = require("../routes/aiRoutes");
+const {
+  connectProducer,
+  disconnectProducer,
+} = require("../config/kafkaProducer");
 
 const cors = require("cors");
+const morgan = require("morgan");
 
 const app = express();
+
 // In your backend (Node.js/Express)
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
@@ -32,6 +37,7 @@ app.use(
 );
 app.use(cookieParser());
 app.use(express.json());
+app.use(morgan("dev"));
 
 // Health check route
 app.get("/", (req, res) => {
@@ -45,10 +51,32 @@ app.use("/api/auth", authRoutes);
 app.use("/api/segment", segmentRoutes);
 app.use("/api/ai", aiRoutes);
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: "Something went wrong!" });
-});
+connectProducer()
+  .then(() => {
+    // Graceful shutdown
+    process.on("SIGINT", async () => {
+      console.log("\nShutting down backend server...");
+      await disconnectProducer(); // Disconnect Kafka Producer
+      server.close(() => {
+        console.log("Backend server gracefully closed.");
+        process.exit(0);
+      });
+    });
+    process.on("SIGTERM", async () => {
+      console.log("\nShutting down backend server...");
+      await disconnectProducer(); // Disconnect Kafka Producer
+      server.close(() => {
+        console.log("Backend server gracefully closed.");
+        process.exit(0);
+      });
+    });
+  })
+  .catch((err) => {
+    console.error(
+      "Failed to start backend due to Kafka Producer connection error:",
+      err
+    );
+    process.exit(1); // Exit if Kafka connection fails on startup
+  });
 
 module.exports = app;
