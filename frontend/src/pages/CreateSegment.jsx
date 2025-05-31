@@ -55,7 +55,7 @@ const CreateSegmentPage = () => {
     const response = await api.post("/segment", fullSegment);
     if (response.status === 201) {
       toast.success("Campaign Started Successfully!");
-      navigate(`/campaigns/${response.data._id}`);
+      navigate(`/campaigns`);
     }
   };
 

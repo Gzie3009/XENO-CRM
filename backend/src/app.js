@@ -8,6 +8,8 @@ const orderRoutes = require("../routes/orderRoutes");
 const authRoutes = require("../routes/authRoutes");
 const segmentRoutes = require("../routes/segmentRoutes");
 const aiRoutes = require("../routes/aiRoutes");
+const campaignRoutes = require("../routes/campaignRoutes");
+
 const {
   connectProducer,
   disconnectProducer,
@@ -50,6 +52,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/segment", segmentRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/campaign", campaignRoutes);
 
 connectProducer()
   .then(() => {

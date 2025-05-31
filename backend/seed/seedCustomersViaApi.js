@@ -46,4 +46,4 @@ const generateCustomers = async (count) => {
   console.log(`✅ Successfully sent ${success} customers to API`);
 };
 
-generateCustomers(10);
+generateCustomers(100);

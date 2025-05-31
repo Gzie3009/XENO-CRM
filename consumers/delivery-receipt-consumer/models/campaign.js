@@ -26,7 +26,7 @@ const campaignSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["INITIATED", "IN_PROGRESS", "COMPLETED", "PAUSED", "CANCELLED"],
+    enum: ["INITIATED", "IN_PROGRESS", "COMPLETED"],
     default: "INITIATED",
   },
   initiatedAt: {

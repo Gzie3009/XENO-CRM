@@ -78,4 +78,4 @@ const generateOrders = async (count) => {
 };
 
 // Generate 5000 fake orders
-generateOrders(10);
+generateOrders(500);

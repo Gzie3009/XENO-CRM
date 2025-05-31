@@ -1,9 +1,8 @@
 const { Kafka } = require("kafkajs");
 const mongoose = require("mongoose");
-const express = require("express"); // Import Express
+const express = require("express");
 require("dotenv").config();
 
-// Kafka Configuration from .env
 const KAFKA_BROKERS = process.env.KAFKA_BROKERS
   ? process.env.KAFKA_BROKERS.split(",")
   : ["localhost:9092"];
@@ -11,38 +10,27 @@ const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID;
 const KAFKA_GROUP_ID = process.env.KAFKA_GROUP_ID;
 const KAFKA_TOPICS = ["customer-ingestion", "order-ingestion"];
 
-// MongoDB Configuration from .env
 const MONGO_URI = process.env.MONGO_URI;
-
-console.log(KAFKA_BROKERS, KAFKA_CLIENT_ID, KAFKA_GROUP_ID, MONGO_URI);
-
-// Express Server Configuration
-const PORT = process.env.PORT || 4001; // Consumer will listen on this port for health checks
+const PORT = process.env.PORT || 4001;
 
 const kafka = new Kafka({
   clientId: KAFKA_CLIENT_ID,
   brokers: KAFKA_BROKERS,
-  // Add SASL configuration if using a managed Kafka service (e.g., Confluent Cloud)
-  // sasl: {
-  //   mechanism: 'plain', // Or 'scram-sha-256', 'scram-sha-512'
-  //   username: process.env.KAFKA_API_KEY,
-  //   password: process.env.KAFKA_API_SECRET,
-  // },
-  // ssl: true, // Typically true for managed services
 });
 
-const consumer = kafka.consumer({ groupId: KAFKA_GROUP_ID });
-
+const consumer = kafka.consumer({
+  groupId: KAFKA_GROUP_ID,
+  fromBeginning: false,
+});
 const Customer = require("./models/customer");
 const Order = require("./models/order");
 
 const app = express();
 app.use(express.json());
 
-// Health check endpoint
 app.get("/health", (req, res) => {
-  const kafkaReady = consumer.isConnected(); // Check if KafkaJS consumer is connected
-  const mongoReady = mongoose.connection.readyState === 1; // 1 means 'connected'
+  const kafkaReady = consumer.isConnected();
+  const mongoReady = mongoose.connection.readyState === 1;
 
   if (kafkaReady && mongoReady) {
     res.status(200).json({
@@ -74,78 +62,101 @@ const startExpressServer = () => {
   });
 };
 
+let messageBuffer = [];
+let processingTimeout = null;
+const BATCH_SIZE = 100;
+const BATCH_INTERVAL_MS = 1500;
+
+const processBatch = async () => {
+  if (messageBuffer.length === 0) {
+    processingTimeout = null;
+    return;
+  }
+
+  const currentBatch = [...messageBuffer];
+  messageBuffer = [];
+
+  const customerOps = [];
+  const orderInserts = [];
+
+  for (const { topic, data } of currentBatch) {
+    if (topic === "customer-ingestion") {
+      customerOps.push({
+        updateOne: {
+          filter: { email: data.email },
+          update: {
+            ...data,
+            updatedAt: new Date(),
+            lastPurchaseDate: data.lastPurchaseDate
+              ? new Date(data.lastPurchaseDate)
+              : new Date(),
+          },
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
+      });
+    } else if (topic === "order-ingestion") {
+      orderInserts.push({
+        ...data,
+        orderDate: data.orderDate ? new Date(data.orderDate) : new Date(),
+        updatedAt: new Date(),
+      });
+    }
+  }
+
+  if (customerOps.length > 0) {
+    try {
+      await Customer.bulkWrite(customerOps);
+      console.log(`✅ Bulk upserted ${customerOps.length} customers`);
+    } catch (err) {
+      console.error("❌ Customer bulkWrite error:", err);
+    }
+  }
+
+  if (orderInserts.length > 0) {
+    const validOrders = [];
+    for (const order of orderInserts) {
+      const customerExists = await Customer.exists({ _id: order.customerId });
+      if (customerExists) validOrders.push(order);
+    }
+
+    if (validOrders.length > 0) {
+      try {
+        await Order.insertMany(validOrders);
+        console.log(`📦 Bulk inserted ${validOrders.length} orders`);
+      } catch (err) {
+        console.error("❌ Order insertMany error:", err);
+      }
+    }
+  }
+
+  processingTimeout = null;
+};
+
 const runConsumer = async () => {
   try {
-    // Start the Express server first for health checks
     await startExpressServer();
-
-    // Connect to Kafka
     await consumer.connect();
     console.log("Kafka Consumer Connected!");
-
-    // Connect to MongoDB using Mongoose
     await mongoose.connect(MONGO_URI);
     console.log("MongoDB Connected via Mongoose!");
-
-    // Subscribe to topics
-    await consumer.subscribe({ topics: KAFKA_TOPICS, fromBeginning: true });
+    await consumer.subscribe({ topics: KAFKA_TOPICS, fromBeginning: false });
     console.log(`Subscribed to Kafka topics: ${KAFKA_TOPICS.join(", ")}`);
 
-    // Start consuming messages
     await consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
+      eachMessage: async ({ topic, message }) => {
         try {
           const data = JSON.parse(message.value.toString());
-          console.log(`Received message from topic ${topic}:`, data);
+          messageBuffer.push({ topic, data });
 
-          switch (topic) {
-            case "customer-ingestion":
-              const customerDataToSave = {
-                ...data,
-                updatedAt: new Date(),
-                lastPurchaseDate: data.lastPurchaseDate
-                  ? new Date(data.lastPurchaseDate)
-                  : new Date(),
-              };
-              await Customer.findOneAndUpdate(
-                { email: customerDataToSave.email },
-                customerDataToSave,
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-              );
-              console.log(
-                `Customer data upserted for: ${customerDataToSave.email}`
-              );
-              break;
-            case "order-ingestion":
-              const customer = await Customer.findOne({
-                _id: data.customerId,
-              });
-              if (!customer) {
-                console.warn(
-                  `Order received for non-existent customer id: ${data.customerId}. Skipping.`
-                );
-                return;
-              }
-              const orderDataToSave = {
-                ...data,
-                customerId: customer._id,
-                orderDate: data.orderDate
-                  ? new Date(data.orderDate)
-                  : new Date(),
-                updatedAt: new Date(),
-              };
-              await Order.create(orderDataToSave);
-              console.log(`New order created for customer: ${customer.email}`);
-              break;
-            default:
-              console.warn(`Received message from unknown topic: ${topic}`);
+          if (messageBuffer.length >= BATCH_SIZE) {
+            if (processingTimeout) clearTimeout(processingTimeout);
+            await processBatch();
+          } else if (!processingTimeout) {
+            processingTimeout = setTimeout(processBatch, BATCH_INTERVAL_MS);
           }
-        } catch (parseOrDbError) {
-          console.error(
-            "Error processing message or saving to DB:",
-            parseOrDbError
-          );
-          console.error("Raw message:", message.value.toString());
+        } catch (err) {
+          console.error("❌ Failed to parse message:", err);
         }
       },
     });
@@ -164,9 +175,12 @@ const runConsumer = async () => {
   }
 };
 
-// Handle graceful shutdown for both Kafka and MongoDB
 const gracefulShutdown = async () => {
   console.log("\nShutting down consumer...");
+  if (processingTimeout) {
+    clearTimeout(processingTimeout);
+    await processBatch();
+  }
   if (consumer) {
     await consumer.disconnect();
     console.log("Kafka Consumer Disconnected.");
@@ -182,7 +196,3 @@ process.on("SIGINT", gracefulShutdown);
 process.on("SIGTERM", gracefulShutdown);
 
 runConsumer();
-
-
-
-

@@ -5,6 +5,8 @@ const {
   buildMongoQuery,
   aggregatedQueryPipeline,
 } = require("../utils/CustomQuery");
+const Campaign = require("../models/campaign");
+const { sendMessage } = require("../config/kafkaProducer");
 
 // Create a new segment
 exports.createSegment = async (req, res) => {
@@ -27,28 +29,54 @@ exports.createSegment = async (req, res) => {
       messageTemplate
     );
 
-    let campaign = { _id: 1 };
-    // initiate the campaign
-    // initiateCampaign(segment._id,messageTemplate,label)
-
-    // dummy return for now
-    res.status(201).json(campaign);
+    initiateCampaign(newsegment._id, messageTemplate, label);
+    res.status(201).json({
+      message: "Segment created successfully",
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
-exports.getAllSegments = async (req, res) => {
+initiateCampaign = async (segmentId, messageTemplate, label) => {
   try {
-    let segments = await Segment.find();
-    if (segments.length >= 0) {
-      if (segments.length == 0) {
-        segments = [];
-      }
-      return res.status(200).json(segments);
+    let segment = await Segment.findById(segmentId);
+    const { rules } = segment;
+    let pipeline = [];
+    const parsedRules = typeof rules === "string" ? JSON.parse(rules) : rules;
+    if (!parsedRules || parsedRules.rules.length === 0) {
+      pipeline = [
+        {
+          $lookup: {
+            from: "orders",
+            localField: "_id",
+            foreignField: "customerId",
+            as: "orders",
+          },
+        },
+      ];
+    } else {
+      const convertedQuery = buildMongoQuery(parsedRules);
+      pipeline = aggregatedQueryPipeline(convertedQuery);
     }
-    res.status(404).json({ message: "Segment not found" });
+
+    const customers = await Customer.aggregate(pipeline).count("count");
+    const totalAudienceSize = customers[0].count;
+    const campaign = new Campaign({
+      segmentId,
+      name: label,
+      messageTemplate,
+      totalAudienceSize,
+    });
+    await campaign.save();
+    const KAFKA_TOPIC_CAMPAIGN_TRIGGER = "campaign-trigger";
+    await sendMessage(KAFKA_TOPIC_CAMPAIGN_TRIGGER, {
+      campaignId: campaign._id.toString(),
+      customerFetchPipeline: pipeline,
+      messageTemplate,
+    });
+    console.log("Campaign initiated successfully:", campaign._id);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error initiating campaign:", error);
   }
 };
