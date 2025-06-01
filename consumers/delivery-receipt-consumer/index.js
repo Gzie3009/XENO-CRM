@@ -1,12 +1,8 @@
 require("dotenv").config();
-const express = require("express");
 const { Kafka } = require("kafkajs");
 const mongoose = require("mongoose");
 const CommunicationLog = require("./models/communicationLog");
 const Campaign = require("./models/campaign");
-
-const app = express();
-const PORT = process.env.PORT || 5010;
 
 // Kafka config
 const kafka = new Kafka({
@@ -28,20 +24,21 @@ const consumer = kafka.consumer({
   groupId: process.env.KAFKA_GROUP_ID_DELIVERY_RECEIPT,
   fromBeginning: false,
 });
-const KAFKA_TOPIC =
-  process.env.KAFKA_TOPIC_DELIVERY_RECEIPT;
 
+const KAFKA_TOPIC = process.env.KAFKA_TOPIC_DELIVERY_RECEIPT;
+
+// MongoDB connection
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log(" MongoDB connected (Delivery Receipt Consumer)");
+    console.log("✅ MongoDB connected (Delivery Worker)");
   } catch (err) {
-    console.error(" MongoDB connection failed:", err);
+    console.error("❌ MongoDB connection failed:", err);
     process.exit(1);
   }
 };
 
-// Buffer & batching
+// Buffer & batching setup
 let messageBuffer = [];
 let processingTimeout = null;
 const BATCH_SIZE = 100;
@@ -65,7 +62,6 @@ const processBatch = async () => {
   );
 
   try {
-    // Fetch related logs to get campaignIds
     const logs = await CommunicationLog.find(
       { _id: { $in: communicationLogIds } },
       "_id campaignId"
@@ -76,14 +72,13 @@ const processBatch = async () => {
       logIdToCampaignIdMap[log._id.toString()] = log.campaignId.toString();
     });
 
-    const campaignStats = {}; // { [campaignId]: { delivered: 0, failed: 0 } }
+    const campaignStats = {};
 
     const operations = currentBatch
       .map((item) => {
         const campaignId = logIdToCampaignIdMap[item.communicationLogId];
         if (!campaignId) return null;
 
-        // Track delivery stats
         if (!campaignStats[campaignId]) {
           campaignStats[campaignId] = { delivered: 0, failed: 0 };
         }
@@ -102,13 +97,11 @@ const processBatch = async () => {
           },
         };
       })
-      .filter(Boolean); // remove nulls
+      .filter(Boolean);
 
-    // Perform bulk update of logs
     const result = await CommunicationLog.bulkWrite(operations);
     console.log(`✅ Bulk update: ${result.modifiedCount} logs updated.`);
 
-    // Now update each campaign
     for (const [campaignId, stats] of Object.entries(campaignStats)) {
       await Campaign.findByIdAndUpdate(campaignId, {
         $inc: {
@@ -117,7 +110,6 @@ const processBatch = async () => {
         },
       });
 
-      // Check if campaign is done
       const campaign = await Campaign.findById(campaignId).lean();
       const totalDelivered =
         (campaign.deliveryStats.sentCount || 0) + stats.delivered;
@@ -165,29 +157,22 @@ const runConsumer = async () => {
   });
 };
 
-// Health check route
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "Delivery Receipt Consumer is running." });
-});
-
-// Start server and consumer
+// Start worker
 const start = async () => {
   await connectDB();
   await runConsumer();
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
-  });
+  console.log("🚀 Delivery Receipt Kafka Worker started");
 };
 
 start().catch((err) => {
-  console.error("❌ Startup error:", err);
+  console.error("❌ Worker startup error:", err);
   process.exit(1);
 });
 
 // Graceful shutdown
 ["SIGINT", "SIGTERM"].forEach((sig) =>
   process.on(sig, async () => {
-    console.log(`\n🔻 Shutting down on ${sig}...`);
+    console.log(`\n🔻 Shutting down worker on ${sig}...`);
     if (processingTimeout) {
       clearTimeout(processingTimeout);
       await processBatch();

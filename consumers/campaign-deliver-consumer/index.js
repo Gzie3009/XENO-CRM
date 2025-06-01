@@ -1,5 +1,4 @@
 require("dotenv").config();
-const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
 const { Kafka } = require("kafkajs");
@@ -7,9 +6,6 @@ const { Kafka } = require("kafkajs");
 const Campaign = require("./models/campaign");
 const CommunicationLog = require("./models/communicationLog");
 const customer = require("./models/customer");
-
-const app = express();
-const PORT = process.env.PORT || 5005;
 
 // Kafka setup
 const KAFKA_BROKERS = process.env.KAFKA_BROKERS
@@ -42,14 +38,14 @@ const consumer = kafka.consumer({
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log("MongoDB connected");
+    console.log("✅ MongoDB connected");
   } catch (err) {
-    console.error("MongoDB connection failed:", err);
+    console.error("❌ MongoDB connection failed:", err);
     process.exit(1);
   }
 };
 
-// Dummy API sender
+// Dummy vendor API sender
 async function sendToDummyVendorAPI(logId, email, phone, message) {
   try {
     await axios.post(
@@ -91,6 +87,7 @@ const runConsumer = async () => {
         console.log(
           `🎯 Campaign ${campaignId} — ${customers.length} customers`
         );
+
         if (customers.length === 0) {
           await Campaign.findByIdAndUpdate(campaignId, {
             status: "COMPLETED",
@@ -129,28 +126,20 @@ const runConsumer = async () => {
 
         console.log(`✅ Campaign ${campaignId} messages dispatched.`);
       } catch (err) {
-        console.error("❌ Error processing message:", err);
+        console.error("❌ Error processing Kafka message:", err);
       }
     },
   });
 };
 
-// Express endpoints
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "Campaign Delivery Consumer is running." });
-});
-
-// Start everything
+// Start the worker
 const start = async () => {
   await connectDB();
   await runConsumer();
-  app.listen(PORT, () =>
-    console.log(`🚀 Express server listening on http://localhost:${PORT}`)
-  );
 };
 
 start().catch((err) => {
-  console.error("❌ Startup failed:", err);
+  console.error("❌ Worker startup failed:", err);
   process.exit(1);
 });
 
