@@ -8,9 +8,10 @@ const PORT = process.env.PORT || 3000;
 
 // List of health check endpoints
 const endpoints = [
-  "https://xeno-crm-d3ev.onrender.com/health", // Endpoint 1
-  "https://xeno-crm-consumer-campaign-delivery.onrender.com/health", // Endpoint 2
-  "https://xeno-crm-consumer-data-ingestion.onrender.com/health", // Endpoint 3
+  "https://xeno-crm-d3ev.onrender.com/health",
+  "https://xeno-crm-consumer-campaign-delivery.onrender.com/health",
+  "https://xeno-crm-consumer-data-ingestion.onrender.com/health",
+  "https://xeno-crm-vendor-backend-bndb.onrender.com", 
 ];
 
 // Route to trigger health checks
