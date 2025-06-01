@@ -20,17 +20,14 @@ const morgan = require("morgan");
 
 const app = express();
 
-// In your backend (Node.js/Express)
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
   next();
 });
 
-// Connect to MongoDB
 connectDB();
 
-// Middleware
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",

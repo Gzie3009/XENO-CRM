@@ -19,9 +19,9 @@ exports.googleAuth = async (req, res) => {
     // Set HTTP-only cookie with expiration
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000 * 10,
+      secure: process.env.PRODUCTION === "true",
+      sameSite: process.env.PRODUCTION === "true" ? "None" : "Lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
