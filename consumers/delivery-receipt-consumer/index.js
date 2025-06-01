@@ -16,6 +16,12 @@ const kafka = new Kafka({
   brokers: process.env.KAFKA_BROKERS
     ? process.env.KAFKA_BROKERS.split(",")
     : ["localhost:9092"],
+  ssl: {},
+  sasl: {
+    mechanism: "scram-sha-256",
+    username: process.env.KAFKA_USERNAME,
+    password: process.env.KAFKA_PASSWORD,
+  },
 });
 
 const consumer = kafka.consumer({
@@ -23,7 +29,7 @@ const consumer = kafka.consumer({
   fromBeginning: false,
 });
 const KAFKA_TOPIC =
-  process.env.KAFKA_TOPIC_DELIVERY_RECEIPT || "campaign-delivery-receipts";
+  process.env.KAFKA_TOPIC_DELIVERY_RECEIPT;
 
 const connectDB = async () => {
   try {

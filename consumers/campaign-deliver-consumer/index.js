@@ -26,6 +26,12 @@ const DUMMY_VENDOR_API_URL =
 const kafka = new Kafka({
   clientId: KAFKA_CLIENT_ID,
   brokers: KAFKA_BROKERS,
+  ssl: {},
+  sasl: {
+    mechanism: "scram-sha-256",
+    username: process.env.KAFKA_USERNAME,
+    password: process.env.KAFKA_PASSWORD,
+  },
 });
 const consumer = kafka.consumer({
   groupId: KAFKA_GROUP_ID,

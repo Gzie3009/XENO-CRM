@@ -1,5 +1,5 @@
 const { Kafka } = require("kafkajs");
-require("dotenv").config(); 
+require("dotenv").config();
 
 // Kafka Producer Configuration from .env
 const KAFKA_BROKERS = process.env.KAFKA_BROKERS
@@ -11,13 +11,12 @@ const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID + "-backend";
 const kafka = new Kafka({
   clientId: KAFKA_CLIENT_ID,
   brokers: KAFKA_BROKERS,
-  // Add SASL configuration if using a managed Kafka service (e.g., Confluent Cloud)
-  // sasl: {
-  //   mechanism: 'plain', // Or 'scram-sha-256', 'scram-sha-512'
-  //   username: process.env.KAFKA_API_KEY,
-  //   password: process.env.KAFKA_API_SECRET,
-  // },
-  // ssl: process.env.NODE_ENV === 'production' ? true : false, // Enable SSL in production
+  ssl: {},
+  sasl: {
+    mechanism: "scram-sha-256",
+    username: process.env.KAFKA_USERNAME,
+    password: process.env.KAFKA_PASSWORD,
+  },
 });
 
 const producer = kafka.producer();
@@ -43,7 +42,7 @@ async function sendMessage(topic, message) {
     console.log(`Message sent to topic ${topic}:`, message);
   } catch (error) {
     console.error(`Error sending message to topic ${topic}:`, error);
-    throw error; 
+    throw error;
   }
 }
 

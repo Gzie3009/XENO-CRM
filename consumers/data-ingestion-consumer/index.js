@@ -9,6 +9,8 @@ const KAFKA_BROKERS = process.env.KAFKA_BROKERS
 const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID;
 const KAFKA_GROUP_ID = process.env.KAFKA_GROUP_ID;
 const KAFKA_TOPICS = ["customer-ingestion", "order-ingestion"];
+const KAFKA_USERNAME = process.env.KAFKA_USERNAME;
+const KAFKA_PASSWORD = process.env.KAFKA_PASSWORD;
 
 const MONGO_URI = process.env.MONGO_URI;
 const PORT = process.env.PORT || 4001;
@@ -16,6 +18,12 @@ const PORT = process.env.PORT || 4001;
 const kafka = new Kafka({
   clientId: KAFKA_CLIENT_ID,
   brokers: KAFKA_BROKERS,
+  ssl: {},
+  sasl: {
+    mechanism: "scram-sha-256",
+    username: KAFKA_USERNAME,
+    password: KAFKA_PASSWORD,
+  },
 });
 
 const consumer = kafka.consumer({
