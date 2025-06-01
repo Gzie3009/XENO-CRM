@@ -4,6 +4,7 @@ const {
   aggregatedQueryPipeline,
 } = require("../utils/CustomQuery");
 const { sendMessage } = require("../config/kafkaProducer"); // Import the sendMessage function
+const util = require("util");
 
 function validateEmail(email) {
   const emailRegex = new RegExp(
@@ -95,9 +96,12 @@ exports.countAudience = async (req, res) => {
       }
       const parsedRules = typeof rules === "string" ? JSON.parse(rules) : rules;
       const convertedQuery = buildMongoQuery(parsedRules);
+      console.log(
+        "Converted Query (util.inspect):",
+        util.inspect(convertedQuery, { depth: null, colors: true })
+      );
       pipeline = aggregatedQueryPipeline(convertedQuery);
     } else {
-      // Return all customers with their orders
       pipeline = [
         {
           $lookup: {

@@ -31,7 +31,7 @@ export default function RuleRow({ rule, index, onUpdate, onDelete }) {
   };
 
   const [operatorOptions, setOperatorOptions] = useState([]);
-  const [inputValue, setInputValue] = useState(rule.value);
+  const [inputValue, setInputValue] = useState();
 
   // Updates when field is changed
   const handleFieldChange = (val) => {

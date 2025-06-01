@@ -145,13 +145,13 @@ const generateRulesFromNaturalLanguagePrompt = `
       SUPPORTED FIELD LIST
 
       Customer Fields:
-        customer.name (string)
-        customer.email (string)
-        customer.phone (string)
-        customer.totalSpend (number)
-        customer.visits (number)
-        customer.lastPurchaseDate (date)
-        customer.createdAt (date)
+        name (string)
+        email (string)
+        phone (string)
+        totalSpend (number)
+        visits (number)
+        lastPurchaseDate (date)
+        createdAt (date)
         Order Fields:
         orders.amount (number)
         orders.status (string: "PLACED", "DELIVERED", "CANCELLED")
