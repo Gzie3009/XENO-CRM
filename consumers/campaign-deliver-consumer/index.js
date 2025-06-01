@@ -137,9 +137,14 @@ const runConsumer = async () => {
   });
 };
 
-// Health check endpoint
-app.get("/", (req, res) => {
-  res.send("📣 Campaign Worker is running.");
+app.get("/health", (req, res) => {
+  const mongoStatus =
+    mongoose.connection.readyState === 1 ? "connected" : "disconnected";
+  res.json({
+    status: "ok",
+    mongo: mongoStatus,
+    kafkaTopics: KAFKA_TOPICS,
+  });
 });
 
 // Start server and Kafka consumer
