@@ -1,10 +1,14 @@
 require("dotenv").config();
+const express = require("express");
 const { Kafka } = require("kafkajs");
 const mongoose = require("mongoose");
 const CommunicationLog = require("./models/communicationLog");
 const Campaign = require("./models/campaign");
 
-// Kafka config
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Kafka setup
 const kafka = new Kafka({
   clientId:
     process.env.KAFKA_CLIENT_ID_DELIVERY_RECEIPT ||
@@ -24,10 +28,9 @@ const consumer = kafka.consumer({
   groupId: process.env.KAFKA_GROUP_ID_DELIVERY_RECEIPT,
   fromBeginning: false,
 });
-
 const KAFKA_TOPIC = process.env.KAFKA_TOPIC_DELIVERY_RECEIPT;
 
-// MongoDB connection
+// MongoDB Connection
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -38,7 +41,7 @@ const connectDB = async () => {
   }
 };
 
-// Buffer & batching setup
+// Batching logic
 let messageBuffer = [];
 let processingTimeout = null;
 const BATCH_SIZE = 100;
@@ -131,7 +134,7 @@ const processBatch = async () => {
   }
 };
 
-// Kafka consumer runner
+// Kafka consumer logic
 const runConsumer = async () => {
   await consumer.connect();
   await consumer.subscribe({ topic: KAFKA_TOPIC, fromBeginning: false });
@@ -157,29 +160,49 @@ const runConsumer = async () => {
   });
 };
 
-// Start worker
-const start = async () => {
+// Health check endpoint
+app.get("/health", async (req, res) => {
+  const mongoState = mongoose.connection.readyState;
+  const kafkaState = consumer ? "connected" : "disconnected";
+
+  res.json({
+    status: "ok",
+    mongo: mongoState === 1 ? "connected" : "disconnected",
+    kafka: kafkaState,
+  });
+});
+
+// Start everything
+let server;
+
+const startServer = async () => {
   await connectDB();
   await runConsumer();
-  console.log("🚀 Delivery Receipt Kafka Worker started");
+
+  server = app.listen(PORT, () => {
+    console.log(`🚀 Express server listening on port ${PORT}`);
+  });
 };
 
-start().catch((err) => {
-  console.error("❌ Worker startup error:", err);
+startServer().catch((err) => {
+  console.error("❌ Startup error:", err);
   process.exit(1);
 });
 
 // Graceful shutdown
 ["SIGINT", "SIGTERM"].forEach((sig) =>
   process.on(sig, async () => {
-    console.log(`\n🔻 Shutting down worker on ${sig}...`);
+    console.log(`\n🔻 Shutting down on ${sig}...`);
     if (processingTimeout) {
       clearTimeout(processingTimeout);
       await processBatch();
     }
-    await consumer.disconnect();
-    await mongoose.disconnect();
-    console.log("✅ Shutdown complete");
+
+    if (consumer) await consumer.disconnect();
+    if (mongoose.connection.readyState === 1) await mongoose.disconnect();
+    if (server) server.close(() => console.log("🛑 HTTP server closed"));
+
+    console.log("✅ Graceful shutdown complete");
     process.exit(0);
   })
 );

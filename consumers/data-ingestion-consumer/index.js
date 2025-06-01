@@ -1,41 +1,47 @@
-// worker.js
 require("dotenv").config();
-const { Kafka } = require("kafkajs");
+const express = require("express");
 const mongoose = require("mongoose");
+const { Kafka } = require("kafkajs");
 
 const Customer = require("./models/customer");
 const Order = require("./models/order");
 
-// Config
-const KAFKA_BROKERS = process.env.KAFKA_BROKERS?.split(",") || [
-  "localhost:9092",
-];
-const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID;
-const KAFKA_GROUP_ID = process.env.KAFKA_GROUP_ID;
-const KAFKA_TOPICS = ["customer-ingestion", "order-ingestion"];
-const KAFKA_USERNAME = process.env.KAFKA_USERNAME;
-const KAFKA_PASSWORD = process.env.KAFKA_PASSWORD;
-const MONGO_URI = process.env.MONGO_URI;
+const app = express();
+const PORT = process.env.PORT || 3001;
 
-// Kafka setup
+// Kafka Configuration
 const kafka = new Kafka({
-  clientId: KAFKA_CLIENT_ID,
-  brokers: KAFKA_BROKERS,
+  clientId: process.env.KAFKA_CLIENT_ID,
+  brokers: process.env.KAFKA_BROKERS?.split(",") || ["localhost:9092"],
   ssl: {},
   sasl: {
     mechanism: "scram-sha-256",
-    username: KAFKA_USERNAME,
-    password: KAFKA_PASSWORD,
+    username: process.env.KAFKA_USERNAME,
+    password: process.env.KAFKA_PASSWORD,
   },
 });
 
-const consumer = kafka.consumer({ groupId: KAFKA_GROUP_ID });
+const consumer = kafka.consumer({ groupId: process.env.KAFKA_GROUP_ID });
+const KAFKA_TOPICS = ["customer-ingestion", "order-ingestion"];
 
+// Message Buffer
 let messageBuffer = [];
 let processingTimeout = null;
 const BATCH_SIZE = 100;
 const BATCH_INTERVAL_MS = 1500;
 
+// Connect MongoDB
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ MongoDB connected");
+  } catch (err) {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  }
+};
+
+// Kafka Message Processor
 const processBatch = async () => {
   if (messageBuffer.length === 0) return;
 
@@ -97,41 +103,55 @@ const processBatch = async () => {
   }
 };
 
-const runWorker = async () => {
-  try {
-    await mongoose.connect(MONGO_URI);
-    console.log("✅ MongoDB connected");
+// Kafka Consumer Runner
+const runConsumer = async () => {
+  await consumer.connect();
+  console.log("✅ Kafka consumer connected");
 
-    await consumer.connect();
-    console.log("✅ Kafka consumer connected");
+  await consumer.subscribe({ topics: KAFKA_TOPICS, fromBeginning: false });
+  console.log(`📡 Subscribed to: ${KAFKA_TOPICS.join(", ")}`);
 
-    await consumer.subscribe({ topics: KAFKA_TOPICS, fromBeginning: false });
-    console.log(`📡 Subscribed to: ${KAFKA_TOPICS.join(", ")}`);
+  await consumer.run({
+    eachMessage: async ({ topic, message }) => {
+      try {
+        const data = JSON.parse(message.value.toString());
+        messageBuffer.push({ topic, data });
 
-    await consumer.run({
-      eachMessage: async ({ topic, message }) => {
-        try {
-          const data = JSON.parse(message.value.toString());
-          messageBuffer.push({ topic, data });
-
-          if (messageBuffer.length >= BATCH_SIZE) {
-            if (processingTimeout) clearTimeout(processingTimeout);
-            await processBatch();
-          } else if (!processingTimeout) {
-            processingTimeout = setTimeout(processBatch, BATCH_INTERVAL_MS);
-          }
-        } catch (err) {
-          console.error("❌ Failed to parse message:", err);
+        if (messageBuffer.length >= BATCH_SIZE) {
+          if (processingTimeout) clearTimeout(processingTimeout);
+          await processBatch();
+        } else if (!processingTimeout) {
+          processingTimeout = setTimeout(processBatch, BATCH_INTERVAL_MS);
         }
-      },
-    });
-  } catch (err) {
-    console.error("❌ Worker setup error:", err);
-    await shutdown();
-    process.exit(1);
-  }
+      } catch (err) {
+        console.error("❌ Failed to parse message:", err);
+      }
+    },
+  });
 };
 
+// Express Health Check API
+app.get("/health", (req, res) => {
+  const mongoStatus =
+    mongoose.connection.readyState === 1 ? "connected" : "disconnected";
+  res.json({
+    status: "ok",
+    mongo: mongoStatus,
+    kafkaTopics: KAFKA_TOPICS,
+  });
+});
+
+// Start Server + Consumer
+const start = async () => {
+  await connectDB();
+  await runConsumer();
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running at http://localhost:${PORT}`);
+  });
+};
+
+// Graceful Shutdown
 const shutdown = async () => {
   console.log("\n🛑 Shutting down...");
   if (processingTimeout) {
@@ -146,4 +166,7 @@ const shutdown = async () => {
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
-runWorker();
+start().catch((err) => {
+  console.error("❌ Startup error:", err);
+  shutdown();
+});

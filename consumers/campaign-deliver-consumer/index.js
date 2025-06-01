@@ -1,4 +1,5 @@
 require("dotenv").config();
+const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
 const { Kafka } = require("kafkajs");
@@ -6,6 +7,9 @@ const { Kafka } = require("kafkajs");
 const Campaign = require("./models/campaign");
 const CommunicationLog = require("./models/communicationLog");
 const customer = require("./models/customer");
+
+const app = express();
+const PORT = process.env.PORT || 5001;
 
 // Kafka setup
 const KAFKA_BROKERS = process.env.KAFKA_BROKERS
@@ -29,6 +33,7 @@ const kafka = new Kafka({
     password: process.env.KAFKA_PASSWORD,
   },
 });
+
 const consumer = kafka.consumer({
   groupId: KAFKA_GROUP_ID,
   fromBeginning: false,
@@ -132,10 +137,19 @@ const runConsumer = async () => {
   });
 };
 
-// Start the worker
+// Health check endpoint
+app.get("/", (req, res) => {
+  res.send("📣 Campaign Worker is running.");
+});
+
+// Start server and Kafka consumer
 const start = async () => {
   await connectDB();
   await runConsumer();
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Express server listening on port ${PORT}`);
+  });
 };
 
 start().catch((err) => {
