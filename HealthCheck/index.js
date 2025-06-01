@@ -11,7 +11,8 @@ const endpoints = [
   "https://xeno-crm-d3ev.onrender.com/health",
   "https://xeno-crm-consumer-campaign-delivery.onrender.com/health",
   "https://xeno-crm-consumer-data-ingestion.onrender.com/health",
-  "https://xeno-crm-vendor-backend-bndb.onrender.com", 
+  "https://xeno-crm-vendor-backend-bndb.onrender.com",
+  "https://xeno-crm-backend-s4zc.onrender.com",
 ];
 
 // Route to trigger health checks
