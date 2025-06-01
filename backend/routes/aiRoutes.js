@@ -5,5 +5,6 @@ const aiController = require("../controllers/aiController");
 router.use(authMiddleware.protect);
 
 router.post("/generate-templates", aiController.generateTemplates);
+router.post("/generate-rules", aiController.generateRulesFromNaturalLanguage);
 
 module.exports = router;

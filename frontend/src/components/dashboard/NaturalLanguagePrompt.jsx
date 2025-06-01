@@ -1,25 +1,29 @@
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
+import api from "@/utils/API";
+import { useState } from "react";
 
 export default function NaturalLanguagePrompt({
-  aiPrompt,
-  setAiPrompt,
+  objective,
+  description,
   setSegment,
-  loading,
-  setLoading,
 }) {
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handleAIPrompt = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/ai-to-rule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: aiPrompt }),
+      const response = await api.post("/ai/generate-rules", {
+        ruleDescription: aiPrompt,
+        objective,
+        description,
       });
-      const data = await res.json();
-      if (data?.rules) setSegment(data.rules);
+      if (response.status === 200) {
+        setSegment(response.data);
+      }
     } catch (err) {
       console.error("AI conversion failed", err);
     } finally {
@@ -46,7 +50,8 @@ export default function NaturalLanguagePrompt({
           />
           <Button onClick={handleAIPrompt} disabled={loading}>
             <Sparkles className="w-4 h-4 mr-2" />
-            {loading ? "Converting..." : "Generate Rules"}
+            {loading && <Loader2 className="animate-spin" />}
+            {loading ? "Generating..." : "Generate Rules"}
           </Button>
         </div>
       </CardContent>

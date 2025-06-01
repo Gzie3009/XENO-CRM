@@ -18,7 +18,7 @@ import useStore from "@/store/useStore";
 
 export const SidebarContent = () => {
   const navigate = useNavigate();
-  const { user } = useStore();
+  const { user, setUser } = useStore();
 
   const navItems = [
     {
@@ -37,6 +37,7 @@ export const SidebarContent = () => {
     try {
       const response = await api.post("/auth/logout");
       if (response.status === 200) {
+        setUser(null);
         toast.success("Logout successful");
         navigate("/");
       } else {

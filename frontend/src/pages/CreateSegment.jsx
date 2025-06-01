@@ -17,8 +17,6 @@ const CreateSegmentPage = () => {
     operator: "AND",
     rules: [],
   });
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const [objective, setObjective] = useState("");
   const [segmentDescription, setSegmentDescription] = useState("");
@@ -91,11 +89,9 @@ const CreateSegmentPage = () => {
           setLabel={setSegmentLabel}
         />
         <NaturalLanguagePrompt
-          aiPrompt={aiPrompt}
-          setAiPrompt={setAiPrompt}
           setSegment={setSegment}
-          loading={loading}
-          setLoading={setLoading}
+          objective={objective}
+          description={segmentDescription}
         />
       </div>
 

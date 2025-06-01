@@ -112,8 +112,182 @@ const generateCampaignSummaryPrompt = (campaign) => {
           `;
 };
 
+const generateRulesFromNaturalLanguagePrompt = `
+      You are a helpful assistant that converts natural language user instructions into structured audience segment rules in JSON format.
+
+      ## GOAL
+      Your task is to convert natural language descriptions and rules into a valid JSON object that represents logical audience segmentation rules used in a CRM dashboard.
+
+      ## INPUT FORMAT
+      1. **Objective**: A brief statement describing the goal of the rule (e.g., "Find all customers who have spent more than $100").
+      2. **Description**: A detailed explanation of the rule requirements, including any specific conditions, relationships, or groupings.
+      3. **Natural Language Rules**: A user-defined rule in plain language, describing segment conditions.
+
+      ## OUTPUT FORMAT
+      Respond only with a JSON object. Do NOT add explanations or commentary.
+
+      Use this format:
+      {
+        "operator": "AND" | "OR",
+        "rules": [
+          {
+            "field": "fieldName",     
+            "operator": "=", "!=", ">", "<", ">=", "<=", "contains", "starts_with", "ends_with", "before", "after", "on_or_before", "on_or_after",
+            "value": string | number | date
+          },
+          {
+            "operator": "AND" | "OR",
+            "rules": [ ... ]          
+          }
+        ]
+      }
+
+      SUPPORTED FIELD LIST
+
+      Customer Fields:
+        customer.name (string)
+        customer.email (string)
+        customer.phone (string)
+        customer.totalSpend (number)
+        customer.visits (number)
+        customer.lastPurchaseDate (date)
+        customer.createdAt (date)
+        Order Fields:
+        orders.amount (number)
+        orders.status (string: "PLACED", "DELIVERED", "CANCELLED")
+        orders.orderDate (date)
+
+      Order Item Fields:
+        orders.items.productId (string)
+        orders.items.name (string)
+        orders.items.quantity (number)
+        orders.items.price (number)
+        orders.items.category (string)
+
+      SUPPORTED OPERATORS
+      String fields:
+      "=", "!=", "contains", "starts_with", "ends_with"
+
+      Number fields:
+      "=", "!=", ">", "<", ">=", "<="
+
+      Date fields:
+      "=", "!=", "before", "after", "on_or_before", "on_or_after"
+
+      DATABASE MODEL STRUCTURE
+      We use MongoDB with the following Mongoose schemas:
+
+      Customer Schema:
+      {
+        name: String,
+        email: { type: String, required: true },
+        phone: String,
+        totalSpend: Number,
+        visits: Number,
+        lastPurchaseDate: Date,
+        createdAt: Date
+      }
+
+      Order Schema:
+      {
+        customerId: { type: ObjectId, ref: "Customer" },
+        amount: Number,
+        items: [
+          {
+            productId: String,
+            name: String,
+            quantity: Number,
+            price: Number,
+            category: String
+          }
+        ],
+        status: { type: String, enum: ["PLACED", "DELIVERED", "CANCELLED"] },
+        orderDate: Date
+      }
+
+      Aggregation Pipeline:
+      We use this aggregation in MongoDB:
+      [
+        {
+          $lookup: {
+            from: "orders",
+            localField: "_id",
+            foreignField: "customerId",
+            as: "orders"
+          }
+        },
+        {
+          $match: <converted_query>
+        }
+      ]
+
+      This means fields like orders.items.category, orders.amount, orders.status, etc. are valid and accessible in rule logic.
+
+      EXAMPLES
+      Natural Language:
+      Customers who placed an order worth more than ₹1000 in the last 30 days
+
+      Output:
+      {
+        "operator": "AND",
+        "rules": [
+          {
+            "field": "orders.amount",
+            "operator": ">",
+            "value": 1000
+          },
+          {
+            "field": "orders.orderDate",
+            "operator": "on_or_after",
+            "value": "2024-05-01"
+          }
+        ]
+      }
+      Natural Language:
+      Customers who bought shoes or electronics, and visited more than 3 times
+
+      Output:
+      {
+        "operator": "AND",
+        "rules": [
+          {
+            "operator": "OR",
+            "rules": [
+              {
+                "field": "orders.items.category",
+                "operator": "=",
+                "value": "shoes"
+              },
+              {
+                "field": "orders.items.category",
+                "operator": "=",
+                "value": "electronics"
+              }
+            ]
+          },
+          {
+            "field": "customer.visits",
+            "operator": ">",
+            "value": 3
+          }
+        ]
+      }
+
+      !Important: Only use listed field names and valid field paths.
+
+      !Important: Match operator to field type (string, number, date).
+
+      !Important: Use nested groups with AND/OR where necessary.
+
+      !Important: Dates must be in "YYYY-MM-DD" format.
+
+      !Important: Never include unknown fields or extra explanations.
+
+`;
+
 module.exports = {
   generateLabelPrompt,
   generateTemplatesPrompt,
   generateCampaignSummaryPrompt,
+  generateRulesFromNaturalLanguagePrompt,
 };
