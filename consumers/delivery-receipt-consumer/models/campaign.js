@@ -6,6 +6,9 @@ const campaignSchema = new mongoose.Schema({
     ref: "Segment",
     required: true,
   },
+  summary: {
+    type: String,
+  },
   name: {
     type: String,
     required: true,
@@ -26,7 +29,7 @@ const campaignSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["INITIATED", "IN_PROGRESS", "COMPLETED"],
+    enum: ["INITIATED", "COMPLETED"],
     default: "INITIATED",
   },
   initiatedAt: {

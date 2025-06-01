@@ -14,7 +14,6 @@ import CampaignsPage from "./pages/Campaigns";
 import CampaignDetailPage from "./pages/CampaignDetailPage";
 import { SidebarContent } from "./components/dashboard/Sidebar"; // Import SidebarContent
 import AuthProvider from "./providers/authProvider";
-import SegmentsPage from "./pages/Segments";
 
 function AppContent() {
   const location = useLocation();
@@ -30,17 +29,17 @@ function AppContent() {
       {showSidebarOnRoute && (
         <>
           <div className="block md:hidden">
-            <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+            <Sheet  open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
               <SheetTrigger
                 asChild
-                className="fixed top-4 left-4 z-50 md:hidden"
+                className="fixed top-4 right-4 z-50 md:hidden"
               >
                 <Button variant="outline" size="icon">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
               <SheetContent
-                side="left"
+                side="right"
                 className="w-[250px] sm:w-[300px] bg-slate-800 text-gray-300 p-0 flex flex-col"
               >
                 <SidebarContent />
@@ -56,7 +55,6 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/segments" element={<SegmentsPage />} />
           <Route path="/segments/new" element={<CreateSegmentPage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route path="/campaigns/:id" element={<CampaignDetailPage />} />

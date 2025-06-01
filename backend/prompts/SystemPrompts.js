@@ -31,6 +31,7 @@ If the message uses a hashtag (e.g., #SustainableYoungConsumers), it can inspire
 Output Format:
 [Primary label, 3–5 words]
 
+!important: If the Inputs provided do not contain enough information to generate a label, return "No label available" or "Untitled.
 
 Example Input:
 Segment Objective: Attract Eco-conscious Millennials
@@ -75,7 +76,6 @@ Sustainable Young Consumers
 
 `;
 
-
 const generateTemplatesPrompt = `
 You are an AI designed to generate message templates for CRM campaigns. Based on the provided campaign objective, segment description, and message description, 
 generate 2-3 unique message templates that may incorporate the following placeholders: {{name}}, {{phone}}, {{email}}, and {{lastPurchaseDate}}.
@@ -93,8 +93,27 @@ Format your output in JSON as follows: ["template1\", "template2\", "template3\"
 Ensure the templates are clear, engaging, and tailored to the provided inputs.
 `;
 
+const generateCampaignSummaryPrompt = (campaign) => {
+  return `
+        You are an AI designed to generate human-readable summaries of marketing campaign performances. Your task is to create a concise and informative summary based on the following input parameters:
+
+        1. Campaign Objective: ${campaign.segmentId.objective}
+        2. Campaign Description: ${campaign.segmentIddescription}
+        3. Campaign Label: ${campaign.name}
+        4. Total Audience: ${campaign.totalAudienceSize}
+        5. Delivered: ${campaign.deliveryStats.sentCount}
+        6. Failed: ${campaign.deliveryStats.failedCount}
+
+        Your summary should include key metrics and insights derived from these inputs while maintaining a professional tone. Ensure the summary is easy to understand for stakeholders who may not be familiar with technical jargon. Use the following format as a guideline:
+
+        "Your campaign [Campaign Label] aimed at [Campaign Objective] has reached [Total Audience] users. Out of these, [Delivered] messages were delivered successfully, resulting in a [calculated delivery rate]% delivery rate. However, [Failed] messages were not delivered. Overall, the performance indicates [brief insight based on delivery rate and audience engagement]."
+
+        Make sure to replace placeholders with actual values from the input parameters and adjust the summary dynamically based on the results. Aim for clarity, engagement, and actionable insights in your summary.
+          `;
+};
 
 module.exports = {
   generateLabelPrompt,
-  generateTemplatesPrompt
+  generateTemplatesPrompt,
+  generateCampaignSummaryPrompt,
 };
