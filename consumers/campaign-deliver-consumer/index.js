@@ -143,7 +143,7 @@ app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     mongo: mongoStatus,
-    kafkaTopics: KAFKA_TOPICS,
+    kafkaTopics: KAFKA_TOPIC_CAMPAIGN_TRIGGER,
   });
 });
 
