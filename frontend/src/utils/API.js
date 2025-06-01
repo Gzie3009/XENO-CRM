@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:4000/api",
+  baseURL: "https://xeno-crm-backend-s4zc.onrender.com/api",
   withCredentials: true, // Required for cookies
 });
 

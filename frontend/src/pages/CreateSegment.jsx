@@ -9,7 +9,7 @@ import AudiencePreview from "@/components/dashboard/AudiencePreview";
 import api from "@/utils/API";
 import { useNavigate } from "react-router-dom";
 import MessageEditor from "@/components/dashboard/MessageEditor";
-import { Bus } from "lucide-react";
+import { Bus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const CreateSegmentPage = () => {
@@ -26,34 +26,43 @@ const CreateSegmentPage = () => {
   const [totalCustomers, setTotalCustomers] = useState(0);
 
   const [messageTemplate, setMessageTemplate] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
-    if (!objective) {
-      toast.info("Please provide an objective for the segment.");
-      return;
-    }
-    if (!segmentDescription) {
-      toast.info("Please provide a description for the segment.");
-      return;
-    }
-    if (!messageTemplate) {
-      toast.info("Please provide a message template for the segment.");
-      return;
-    }
+    try {
+      setLoading(true);
+      if (!objective) {
+        toast.info("Please provide an objective for the segment.");
+        return;
+      }
+      if (!segmentDescription) {
+        toast.info("Please provide a description for the segment.");
+        return;
+      }
+      if (!messageTemplate) {
+        toast.info("Please provide a message template for the segment.");
+        return;
+      }
 
-    const fullSegment = {
-      objective: objective,
-      description: segmentDescription,
-      rules: segment,
-      messageTemplate: messageTemplate,
-    };
+      const fullSegment = {
+        objective: objective,
+        description: segmentDescription,
+        rules: segment,
+        messageTemplate: messageTemplate,
+      };
 
-    const response = await api.post("/segment", fullSegment);
-    if (response.status === 201) {
-      toast.success("Campaign Started Successfully!");
-      navigate(`/campaigns`);
+      const response = await api.post("/segment", fullSegment);
+      if (response.status === 201) {
+        toast.success("Campaign Started Successfully!");
+        navigate(`/campaigns`);
+      }
+    } catch (error) {
+      console.error("Error submitting segment:", error);
+      toast.error("Error submitting segment");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -115,8 +124,21 @@ const CreateSegmentPage = () => {
       />
       <Separator className="mt-4" />
       <div className="text-center">
-        <Button onClick={handleSubmit} className="w-full">
-          Start Campaign <Bus />
+        <Button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full flex gap-x-2"
+        >
+          {loading ? (
+            <>
+              Starting...
+              <Loader2 className="animate-spin mr-2" />
+            </>
+          ) : (
+            <>
+              Start Campaign <Bus />
+            </>
+          )}
         </Button>
       </div>
     </div>
