@@ -2,11 +2,13 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const { Kafka } = require("kafkajs");
+const morgan = require("morgan");
 
 const Customer = require("./models/customer");
 const Order = require("./models/order");
 
 const app = express();
+app.use(morgan("dev"));
 const PORT = process.env.PORT || 3001;
 
 // Kafka Configuration

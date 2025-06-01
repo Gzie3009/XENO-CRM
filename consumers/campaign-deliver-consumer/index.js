@@ -3,12 +3,14 @@ const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
 const { Kafka } = require("kafkajs");
+const morgan = require("morgan");
 
 const Campaign = require("./models/campaign");
 const CommunicationLog = require("./models/communicationLog");
 const customer = require("./models/customer");
 
 const app = express();
+app.use(morgan("dev"));
 const PORT = process.env.PORT || 5001;
 
 // Kafka setup

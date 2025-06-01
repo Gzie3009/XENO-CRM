@@ -2,8 +2,10 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const morgan = require("morgan");
 
 const app = express();
+app.use(morgan("dev"));
 const PORT = process.env.DUMMY_VENDOR_PORT || 4008;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 const VENDOR_API_KEY = process.env.VENDOR_API_KEY;
