@@ -82,32 +82,6 @@ app.use("/api/segment", segmentRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/campaign", campaignRoutes);
 
-connectProducer()
-  .then(() => {
-    // Graceful shutdown
-    process.on("SIGINT", async () => {
-      console.log("\nShutting down backend server...");
-      await disconnectProducer(); // Disconnect Kafka Producer
-      server.close(() => {
-        console.log("Backend server gracefully closed.");
-        process.exit(0);
-      });
-    });
-    process.on("SIGTERM", async () => {
-      console.log("\nShutting down backend server...");
-      await disconnectProducer(); // Disconnect Kafka Producer
-      server.close(() => {
-        console.log("Backend server gracefully closed.");
-        process.exit(0);
-      });
-    });
-  })
-  .catch((err) => {
-    console.error(
-      "Failed to start backend due to Kafka Producer connection error:",
-      err
-    );
-    process.exit(1); // Exit if Kafka connection fails on startup
-  });
+connectProducer();
 
 module.exports = app;
