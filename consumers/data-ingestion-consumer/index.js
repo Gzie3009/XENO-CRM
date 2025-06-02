@@ -45,6 +45,11 @@ const connectDB = async () => {
 
 // Kafka Message Processor
 const processBatch = async () => {
+  if (processingTimeout) {
+    clearTimeout(processingTimeout);
+    processingTimeout = null;
+  }
+
   if (messageBuffer.length === 0) return;
 
   const currentBatch = [...messageBuffer];
@@ -123,7 +128,13 @@ const runConsumer = async () => {
           if (processingTimeout) clearTimeout(processingTimeout);
           await processBatch();
         } else if (!processingTimeout) {
-          processingTimeout = setTimeout(processBatch, BATCH_INTERVAL_MS);
+          processingTimeout = setTimeout(async () => {
+            try {
+              await processBatch();
+            } catch (err) {
+              console.error("❌ Batch processing error:", err);
+            }
+          }, BATCH_INTERVAL_MS);
         }
       } catch (err) {
         console.error("❌ Failed to parse message:", err);
