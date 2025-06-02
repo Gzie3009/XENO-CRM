@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const connectDB = require("../config/db");
 const cookieParser = require("cookie-parser");
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
 
 const customerRoutes = require("../routes/customerRoutes");
 const orderRoutes = require("../routes/orderRoutes");
@@ -19,6 +21,35 @@ const cors = require("cors");
 const morgan = require("morgan");
 
 const app = express();
+const options = {
+  definition: {
+    openapi: "3.0.4",
+    info: {
+      title: "XENO CRM API",
+      version: "1.0.0",
+      description: "API documentation for the Mini CRM backend",
+    },
+    servers: [
+      {
+        url: process.env.SERVER_URL || "http://localhost:3000",
+      },
+    ],
+    components: {
+      securitySchemes: {
+        cookieAuth: {
+          type: "apiKey",
+          in: "cookie",
+          name: "token",
+        },
+      },
+    },
+    security: [{ cookieAuth: [] }],
+  },
+  apis: ["./models/*.js", "./routes/*.js"],
+};
+const swaggerSpec = swaggerJsdoc(options);
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");

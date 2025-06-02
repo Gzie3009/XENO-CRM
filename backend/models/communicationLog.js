@@ -1,4 +1,40 @@
 const mongoose = require("mongoose");
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CommunicationLog:
+ *       type: object
+ *       required:
+ *         - campaignId
+ *         - customerId
+ *         - messageSent
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Auto-generated MongoDB ObjectId
+ *         campaignId:
+ *           type: string
+ *           description: MongoDB ObjectId referencing the Campaign
+ *         customerId:
+ *           type: string
+ *           description: MongoDB ObjectId referencing the Customer
+ *         messageSent:
+ *           type: string
+ *           description: The message content sent to the customer
+ *         deliveryStatus:
+ *           type: string
+ *           enum:
+ *             - PENDING
+ *             - SENT
+ *             - FAILED
+ *           default: PENDING
+ *           description: Status of message delivery
+ *         timestamp:
+ *           type: string
+ *           format: date-time
+ *           description: Date and time when the communication was logged
+ */
 
 const communicationLogSchema = new mongoose.Schema({
   campaignId: {
@@ -12,7 +48,7 @@ const communicationLogSchema = new mongoose.Schema({
     required: true,
   },
   messageSent: {
-    type: String, 
+    type: String,
     required: true,
   },
   deliveryStatus: {
@@ -25,6 +61,5 @@ const communicationLogSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-
 
 module.exports = mongoose.model("CommunicationLog", communicationLogSchema);

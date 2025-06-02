@@ -2,9 +2,6 @@ const User = require("../models/user");
 const { googleLogin } = require("../utils/googleOauth");
 const jwt = require("jsonwebtoken");
 
-// @desc    Login with Google
-// @route   POST /api/auth/google
-// @access  Public
 exports.googleAuth = async (req, res) => {
   try {
     const { code } = req.body;
@@ -33,9 +30,6 @@ exports.googleAuth = async (req, res) => {
   }
 };
 
-// @desc    Get current user
-// @route   GET /api/auth/me
-// @access  Private
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-tokens -googleId");
@@ -49,9 +43,6 @@ exports.getMe = async (req, res) => {
   }
 };
 
-// @desc    Logout user
-// @route   POST /api/auth/logout
-// @access  Private
 exports.logout = async (req, res) => {
   try {
     res.clearCookie("token");
