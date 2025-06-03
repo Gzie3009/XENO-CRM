@@ -4,7 +4,8 @@ const Order = require("../models/order"); // Adjust path as needed
 const Customer = require("../models/customer"); // Adjust path as needed
 const { faker } = require("@faker-js/faker");
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI);
+const MONGODB_URI = "mongodb://localhost:27017/mydatabase";
+mongoose.connect(MONGODB_URI);
 
 const generateOrders = async (count) => {
   // Get all customer IDs
@@ -67,4 +68,4 @@ const generateOrders = async (count) => {
 };
 
 // Generate 5000 fake orders
-generateOrders(5000);
+generateOrders(1);

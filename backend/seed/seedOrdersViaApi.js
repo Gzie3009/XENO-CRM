@@ -5,10 +5,8 @@ const Customer = require("../models/customer");
 
 // Use node-fetch for Node <18
 const fetch = require("node-fetch");
-
-mongoose.connect(
-  "mongodb+srv://esportspubggaming1234:QMDVztHAavlbch7P@cluster0.detew.mongodb.net/xeno-crm?retryWrites=true&w=majority&appName=Cluster0"
-);
+const MONGODB_URI = "mongodb://localhost:27017/mydatabase";
+mongoose.connect(MONGODB_URI);
 
 const API_URL = "http://localhost:4000/api/orders";
 
@@ -78,4 +76,4 @@ const generateOrders = async (count) => {
 };
 
 // Generate 5000 fake orders
-generateOrders(500);
+generateOrders(1);
